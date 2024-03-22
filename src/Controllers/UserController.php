@@ -20,7 +20,7 @@ class UserController {
         
         $id = $request->parameters()[0];
         $user = Registry::get('database')
-        ->select('users', ['id', 'name'])
+        ->select('users', ['id', 'name', 'role'])
         ->condition(['id'], 'users', [$id], '=')
         ->get();
         
@@ -29,7 +29,8 @@ class UserController {
     }
     function store(Request $request){
        
-        $values = $request->parameters();
+        $values = $request->parameters()[0];
+        
         Registry::get('database')
         ->insert('users', $values)
         ->get();

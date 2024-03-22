@@ -11,9 +11,9 @@ Ejemplos:
 
 POST:
 
-curl -X POST -H "Content-Type: application/json" -d '{"name":"marc"}' http://localhost:8000/api/users/store
+curl -X POST -H "Content-Type: application/json" -d '{"name":"marc", "role":"admin"}' http://localhost:8000/api/users/store
 
-curl -X POST -d "name=marc2" http://localhost:8000/api/users/store
+curl -X POST -d "name=marc2&role=admin2" http://localhost:8000/api/users/store
 
 
 GET:
