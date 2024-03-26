@@ -17,27 +17,29 @@ class Router
 
     protected function router()
     {
-        //dump($this->request->uri());
 
-        //dump(array_keys($this->routes));
-        $parts = explode('/', trim($this->request->uri(), '/'));
-        $routes = $this->routes[$this->request->method()];
-        if (!preg_match('/\d/', $this->request->uri())) {
-
-            if (in_array($this->request->uri(), array_keys($routes))) {
-
-                //dump($this->routes[$this->request->uri()]);
-                $class = explode('@', $routes[$this->request->uri()][0]);
+        //$routes = $this->routes[$this->request->method()];
+        $checkRoute = $this->searchRoutes($this->request->uri(), $this->routes);
+        
+        if ($checkRoute) {
+            $routeData = $this->routes[$checkRoute['route']];
+            
+            if (in_array($this->request->method(), array_keys($routeData))) {
+    
+                $class = explode('@', $routeData[$this->request->method()]);
                 $controllerClass = "\\App\\Controllers\\" . $class[0];
                 $action = $class[1];
 
                 if (class_exists($controllerClass)) {
                     $controller = new $controllerClass();
-
+                    
                     if (method_exists($controller, $action)) {
+
                         switch ($this->request->method()) {
                             case 'GET':
-                                $this->request->setParameters($_GET);
+                                if ($checkRoute['value']) $param = $checkRoute['value'];
+                                else $param = $_GET;
+                                $this->request->setParameters($param);
                                 break;
                             case 'POST':
                                 $result = json_decode(file_get_contents('php://input'), true);
@@ -45,86 +47,91 @@ class Router
                                     $result = [];
                                     parse_str(file_get_contents('php://input'), $result);
                                 }
-                                $this->request->setParameters($result);
+                                $this->request->setParameters(['input' => $result]);
                                 break;
                             case 'PUT':
+                                if ($checkRoute['value']) {
+                                    $param = $checkRoute['value'];
+                                    $this->request->setParameters($param);
+                                }
+
+                                $result = json_decode(file_get_contents('php://input'), true);
+                                if ($result == null) {
+                                    $result = [];
+                                    parse_str(file_get_contents('php://input'), $result);
+                                }
+                                
+                                $this->request->setParameters(['input' => $result]);
+                                break;
                             case 'DELETE':
-                                $result = [];
-                                parse_str(file_get_contents('php://input'), $result);
-                                $this->request->setParameters($result);
+                                if ($checkRoute['value']) {
+                                    $param = $checkRoute['value'];
+                                    $this->request->setParameters($param);
+                                }
+
                                 break;
                         }
 
                         $controller->$action($this->request);
                     }
                 }
-            } else throw new \Exception('El método ' . $this->request->method() . ' no está permitido para esta ruta');
-        } else {
-            $path = '/' . $parts[0] . '/' . $parts[1];
-
-            $matches = array_filter(
-                $routes,
-                function ($key) use ($path) {
-                    return strpos($key, $path) !== false;
-                },
-                ARRAY_FILTER_USE_KEY
-            );
-
-            if (sizeof($matches) != 0) {
-
-                $keys = array_keys($matches);
-                $route = "";
-                foreach ($keys as $element) {
-                    if (strpos($element, '{') !== false) {
-                        $route = $element;
-                        break;
-                    }
-                }
-                $class = explode('@', $routes[$route][0]);
-                $controllerClass = "\\App\\Controllers\\" . $class[0];
-                $action = $class[1];
-
-
-
-                if (class_exists($controllerClass)) {
-                    $controller = new $controllerClass();
-
-                    if (method_exists($controller, $action)) {
-                        switch ($this->request->method()) {
-                            case 'GET':
-
-                                $this->request->setParameters($parts[2]);
-                                break;
-                            case 'POST':
-                                $result = json_decode(file_get_contents('php://input'), true);
-                                if ($result == null) {
-                                    $result = [];
-                                    parse_str(file_get_contents('php://input'), $result);
-                                }
-                                $this->request->setParameters($result);
-                                break;
-                            case 'PUT':
-                                $result = json_decode(file_get_contents('php://input'), true);
-                                if ($result == null) {
-                                    $result = [];
-                                    parse_str(file_get_contents('php://input'), $result);
-                                }
-                                $this->request->setParameters($parts[2]);
-                                $this->request->setParameters($result);
-                                break;
-                            case 'DELETE':
-                                $this->request->setParameters($parts[2]);
-                                break;
-                        }
-
-                        $controller->$action($this->request);
-                    }
-                }
-            } else throw new \Exception('El método ' . $this->request->method() . ' no está permitido para esta ruta');
-        }
+            } else throw new \Exception('El método ' . $this->request->method() . ' no está permitido para ' . $this->request->uri());
+        } else throw new \Exception('La ruta no existe');
     }
-}
+    function searchRoutes($uri, $routes)
+    {
+        $uriParts = explode('/', trim($uri, '/'));
+        $uriSize = sizeof($uriParts);
 
-function parseUri($uri)
-{
+        if (in_array($uri, array_keys($routes))) return ['route' => $uri];
+
+        foreach ($routes as $route => $value) {
+            $routeParts = explode('/', trim($route, '/'));
+            $routeSize = sizeof($routeParts);
+
+            if ($uriSize == $routeSize) {
+
+                $compareResult = $this->compareParts($uriParts, $routeParts);
+
+                if ($compareResult !== false) {
+                    return array_merge(['route' => $route], $compareResult);
+                }
+            }
+        }
+
+
+        return false;
+    }
+    function compareParts($uriParts, $routeParts)
+    {
+        $coincidences = 0;
+
+        $validations = [
+            'id' => function ($id) {
+                return preg_match('/^\d+$/', $id);
+            },
+            'name' => function ($name) {
+                return true;
+            }
+        ];
+
+        $params = [];
+        for ($i = 0; $i < sizeof($uriParts); $i++) {
+            
+            if ($uriParts[$i] == $routeParts[$i]) {
+
+                $coincidences++;
+            } else if (array_key_exists(str_replace(['{', '}'], '', $routeParts[$i]), $validations)) {
+                
+                if ($validations[str_replace(['{', '}'], '', $routeParts[$i])]($uriParts[$i])) {           
+                    $coincidences++;
+                    $params = ['value' => [str_replace(['{', '}'], '', $routeParts[$i]) => $uriParts[$i]]];
+                }
+            } else $i = sizeof($uriParts);
+        }
+
+        if ($coincidences == sizeof($routeParts)) return $params;
+
+        return false;
+    }
 }

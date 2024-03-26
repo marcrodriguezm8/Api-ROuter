@@ -25,6 +25,6 @@ class Request {
         return $this->parameters;
     }
     public function setParameters($parameters){
-        $this->parameters[] = $parameters;
+        $this->parameters += $parameters;
     }
 }

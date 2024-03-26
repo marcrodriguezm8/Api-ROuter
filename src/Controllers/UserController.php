@@ -8,57 +8,98 @@ use App\Registry;
 class UserController {
     function index(Request $request){
         //todos los users
-        $users = Registry::get('database')
-        ->selectAll('users')
-        ->get();
+        try{
+            $users = Registry::get('database')
+            ->selectAll('users')
+            ->get();
 
-        var_dump($users);
+            var_dump($users);
+        }
+        catch(\Exception $e){
+            echo $e->getMessage();
+        }
         
     }
 
     function show(Request $request){
-        
-        $id = $request->parameters()[0];
-        $user = Registry::get('database')
-        ->select('users', ['id', 'name', 'role'])
-        ->condition(['id'], 'users', [$id], '=')
-        ->get();
-        
-        var_dump($user);
+        try{
+            $id = $request->parameters()['id'];
+            
+            $user = Registry::get('database')
+                ->select('users', ['id', 'name', 'role'])
+                ->condition(['id'], 'users', [$id], '=')
+                ->get();
+            if(sizeof($user) != 0) var_dump($user);
+            else throw new \Exception("Usuario no encontrado\n");
+        }
+        catch(\Exception $e){
+            echo $e->getMessage();
+        }
+    }
+    function showName(Request $request){
+        try{
+            $name = $request->parameters()['name'];
+            $user = Registry::get('database')
+                ->select('users', ['id', 'name', 'role'])
+                ->condition(['name'], 'users', [$name], '=')
+                ->get();
 
+            if(sizeof($user) != 0) var_dump($user);
+            else throw new \Exception("Usuario no encontrado\n");
+        }
+        catch(\Exception $e){
+            echo $e->getMessage();
+        }
     }
     function store(Request $request){
        
-        $values = $request->parameters()[0];
-        
-        Registry::get('database')
-        ->insert('users', $values)
-        ->get();
+        try{
+            $values = $request->parameters()['input'];
 
-        echo ("User añadido correctamente\n");
+            Registry::get('database')
+                ->insert('users', $values)
+                ->get();
+            echo ("User añadido correctamente\n");
+        }
+        catch(\Exception $e){
+            echo $e->getMessage();
+        }
+
+        
 
     }
 
     function delete(Request $request){
-        $id = $request->parameters()[0];
-        Registry::get('database')
-        ->delete('users')
-        ->condition(['id'], 'users', [$id], '=')
-        ->get();
+        try{
+            $id = $request->parameters()['id'];
+            Registry::get('database')
+                ->delete('users')
+                ->condition(['id'], 'users', [$id], '=')
+                ->get();
 
-        echo "Usuario eliminado\n";
+            echo "Usuario eliminado\n";
+        }
+        catch(\Exception $e){
+            echo $e->getMessage();
+        }
 
     }
     function update(Request $request){
         
-        $id = $request->parameters()[0];
-        $values = $request->parameters()[1];
-        
-        Registry::get('database')
-        ->update('users', $values)
-        ->condition(['id'], 'users', [$id], '=')
-        ->get();
+        try{
 
-        echo "Usuario actualizado\n";
+            $id = $request->parameters()['id'];
+            $values = $request->parameters()['input'];
+            
+            Registry::get('database')
+            ->update('users', $values)
+            ->condition(['id'], 'users', [$id], '=')
+            ->get();
+
+            echo "Usuario actualizado\n";
+        }
+        catch(\Exception $e){
+            echo $e->getMessage();
+        }
     }
 }

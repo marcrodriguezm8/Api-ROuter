@@ -1,19 +1,18 @@
 <?php
 
 use App\Controllers\UserController;
-    
+
 $routes = [
-    'GET' => [
-        '/api/users' => ['UserController@index'],
-        '/api/users/{id}' => ['UserController@show'],
-    ],
-    'DELETE' => [
-        '/api/users/{id}' => ['UserController@delete'],
-    ],
-    'POST' => [
-        '/api/users/store' => ['UserController@store'],
-    ],
-    'PUT' => [
-        '/api/users/{id}' => ['UserController@update'],
-    ]
+
+    '/api/users' => ['GET' => 'UserController@index'],
+    '/api/users/{id}' => [
+                            'GET' => 'UserController@show',
+                            'DELETE' => 'UserController@delete',
+                            'PUT' => 'UserController@update',
+                        ],
+
+    '/api/users/{name}' => ['GET' => 'UserController@showName'],
+    '/api/users/store' => ['POST' => 'UserController@store'],
+
+
 ];
